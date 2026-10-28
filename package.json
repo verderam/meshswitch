@@ -1,6 +1,6 @@
 {
   "name": "meshswitch",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Interruttore web per avviare/fermare MeshCentral tramite PM2",
   "main": "on.js",
   "scripts": {

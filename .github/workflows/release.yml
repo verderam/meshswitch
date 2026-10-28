@@ -1,0 +1,50 @@
+# Alla pubblicazione di una release allega i file con nome fisso:
+#   meshswitch.tar.gz  - applicazione (package.json con la versione del tag)
+#   version.json       - versione, link al pacchetto e sha256
+#   update.sh          - script di aggiornamento per il server
+#
+# Link stabili all'ultima release stabile (esclude bozze e pre-release):
+#   https://github.com/<owner>/<repo>/releases/latest/download/version.json
+#   https://github.com/<owner>/<repo>/releases/latest/download/meshswitch.tar.gz
+#   https://github.com/<owner>/<repo>/releases/latest/download/update.sh
+
+name: Release assets
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Crea pacchetto e version.json
+        run: |
+          TAG="$GITHUB_REF_NAME"
+          VERSION="${TAG#v}"
+          mkdir -p dist/meshswitch
+
+          # i file marcati export-ignore in .gitattributes restano fuori
+          git archive HEAD | tar -x -C dist/meshswitch
+
+          # la versione del pacchetto è quella del tag
+          node -e "const f=process.argv[1],p=JSON.parse(require('fs').readFileSync(f));p.version=process.argv[2];require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\n')" dist/meshswitch/package.json "$VERSION"
+
+          tar -czf dist/meshswitch.tar.gz -C dist meshswitch
+          cp update.sh dist/update.sh
+
+          SHA=$(sha256sum dist/meshswitch.tar.gz | cut -d' ' -f1)
+          URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/meshswitch.tar.gz"
+          node -e "console.log(JSON.stringify({version:process.argv[1],tag:process.argv[2],url:process.argv[3],sha256:process.argv[4],date:new Date().toISOString()},null,2))" \
+            "$VERSION" "$TAG" "$URL" "$SHA" > dist/version.json
+          cat dist/version.json
+
+      - name: Allega i file alla release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/meshswitch.tar.gz dist/version.json dist/update.sh --clobber

@@ -16,6 +16,7 @@ Funzioni:
 ```
 meshswitch/
 ├── on.js                  # avvio (porta 6990)
+├── update.sh              # aggiornamento dall'ultima release
 ├── config                 # comandi parametrizzati
 ├── package.json
 ├── controllers/default.js # route e esecuzione comandi
@@ -24,21 +25,58 @@ meshswitch/
     └── index.html         # interruttore
 ```
 
-## Avvio
+## Installazione sul server
+
+Prima installazione (scarica ed esegue lo script di aggiornamento dell'ultima release stabile):
 
 ```bash
-npm install
+curl -fsSL https://github.com/verderam/meshswitch/releases/latest/download/update.sh | APP_DIR=/opt/meshswitch bash
+```
+
+Lo script installa l'app in `APP_DIR`, esegue `npm install` e la avvia con PM2 (`meshswitch`).
+
+Avvio manuale:
+
+```bash
 node on.js            # produzione (release, default)
 node on.js --debug    # debug
 ```
 
 Poi apri `http://<server>:6990/`.
 
-Per tenerla attiva con PM2:
+## Aggiornamenti
+
+Ogni release pubblicata su GitHub riceve, tramite GitHub Actions, tre allegati con nome fisso, sempre raggiungibili all'ultima release stabile:
+
+| File | Link stabile |
+|---|---|
+| Versione | https://github.com/verderam/meshswitch/releases/latest/download/version.json |
+| Pacchetto | https://github.com/verderam/meshswitch/releases/latest/download/meshswitch.tar.gz |
+| Script | https://github.com/verderam/meshswitch/releases/latest/download/update.sh |
+
+`version.json` contiene `version`, `tag`, `url` del pacchetto e `sha256`.
+
+`update.sh` confronta `version` con quella di `package.json` locale e, se diversa, scarica il pacchetto, verifica lo sha256, aggiorna i file, esegue `npm install` e riavvia il processo PM2.
 
 ```bash
-pm2 start on.js --name meshswitch
+/opt/meshswitch/update.sh            # aggiorna se serve
+/opt/meshswitch/update.sh --check    # mostra solo le versioni
+/opt/meshswitch/update.sh --force    # reinstalla comunque
 ```
+
+Il file `config` locale non viene mai sovrascritto: se quello nuovo è diverso viene salvato come `config.new`.
+
+Controllo automatico ogni 15 minuti (crontab dell'utente che gestisce PM2):
+
+```
+*/15 * * * * PATH=/usr/local/bin:/usr/bin:/bin /opt/meshswitch/update.sh >> /var/log/meshswitch-update.log 2>&1
+```
+
+Se Node/PM2 sono installati con nvm, aggiungi al `PATH` la cartella `bin` di nvm.
+
+### Pubblicare una nuova versione
+
+Su GitHub: **Releases → Draft a new release**, tag `vX.Y.Z`, **Publish**. La versione nel pacchetto viene presa dal tag. Le pre-release e le bozze non vengono considerate "latest".
 
 ## Note
 
