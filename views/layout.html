@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>@{CONF.name}</title>
+	<style>
+		* { box-sizing: border-box; }
+		html, body { height: 100%; margin: 0; }
+		body {
+			display: flex; align-items: center; justify-content: center; flex-direction: column;
+			font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+			background: #1e2229; color: #e6e6e6;
+		}
+		h1 { font-weight: 400; font-size: 22px; margin: 0 0 30px; letter-spacing: 1px; }
+		.switch { position: relative; width: 140px; height: 70px; }
+		.switch input { opacity: 0; width: 0; height: 0; }
+		.slider {
+			position: absolute; inset: 0; cursor: pointer; border-radius: 70px;
+			background: #555; transition: background .25s;
+		}
+		.slider:before {
+			content: ""; position: absolute; width: 58px; height: 58px; left: 6px; top: 6px;
+			border-radius: 50%; background: #fff; transition: transform .25s;
+			box-shadow: 0 2px 6px rgba(0,0,0,.4);
+		}
+		input:checked + .slider { background: #2ecc71; }
+		input:checked + .slider:before { transform: translateX(70px); }
+		input:disabled + .slider { opacity: .5; cursor: wait; }
+		.label { margin-top: 20px; font-size: 28px; font-weight: 600; min-height: 34px; }
+		.msg { margin-top: 12px; font-size: 13px; color: #aaa; min-height: 18px; text-align: center; max-width: 90vw; }
+		.msg.err { color: #ff6b6b; }
+	</style>
+</head>
+<body>
+	@{body}
+</body>
+</html>

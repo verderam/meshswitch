@@ -1,0 +1,61 @@
+<h1>@{CONF.pm2_process}</h1>
+
+<label class="switch">
+	<input type="checkbox" id="toggle" disabled />
+	<span class="slider"></span>
+</label>
+
+<div class="label" id="label">...</div>
+<div class="msg" id="msg">Lettura stato in corso...</div>
+
+<script>
+	var toggle = document.getElementById('toggle');
+	var label = document.getElementById('label');
+	var msg = document.getElementById('msg');
+
+	function setmsg(text, error) {
+		msg.textContent = text || '';
+		msg.className = 'msg' + (error ? ' err' : '');
+	}
+
+	function render() {
+		label.textContent = toggle.checked ? 'ON' : 'OFF';
+	}
+
+	function loadstatus() {
+		fetch('/api/status/').then(r => r.json()).then(function(res) {
+			toggle.checked = !!res.online;
+			render();
+			setmsg(res.success ? '' : ('Stato non disponibile: ' + res.error), !res.success);
+		}).catch(function() {
+			setmsg('Impossibile contattare il server', true);
+		}).finally(function() {
+			toggle.disabled = false;
+		});
+	}
+
+	toggle.addEventListener('change', function() {
+		var on = toggle.checked;
+		toggle.disabled = true;
+		render();
+		setmsg('Esecuzione comando...');
+
+		fetch(on ? '/api/on/' : '/api/off/', { method: 'POST' }).then(r => r.json()).then(function(res) {
+			if (res.success) {
+				setmsg('Eseguito: ' + res.command);
+			} else {
+				toggle.checked = !on;
+				render();
+				setmsg('Errore: ' + res.error, true);
+			}
+		}).catch(function() {
+			toggle.checked = !on;
+			render();
+			setmsg('Impossibile contattare il server', true);
+		}).finally(function() {
+			toggle.disabled = false;
+		});
+	});
+
+	loadstatus();
+</script>
