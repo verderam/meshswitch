@@ -30,6 +30,13 @@
 		.label { margin-top: 20px; font-size: 28px; font-weight: 600; min-height: 34px; }
 		.msg { margin-top: 12px; font-size: 13px; color: #aaa; min-height: 18px; text-align: center; max-width: 90vw; }
 		.msg.err { color: #ff6b6b; }
+		.open { margin-top: 24px; padding: 10px 22px; border-radius: 6px; background: #2e86c1; color: #fff; text-decoration: none; font-size: 15px; }
+		.open:hover { background: #3498db; }
+		.open[hidden] { display: none; }
+		.timer { margin-top: 6px; font-size: 14px; color: #f0b429; min-height: 18px; }
+		.conn { position: fixed; top: 12px; right: 14px; font-size: 12px; color: #888; }
+		.conn:before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #e74c3c; margin-right: 6px; }
+		.conn.ok:before { background: #2ecc71; }
 	</style>
 </head>
 <body>

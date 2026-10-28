@@ -1,3 +1,5 @@
+<div class="conn" id="conn">offline</div>
+
 <h1>@{CONF.pm2_process}</h1>
 
 <label class="switch">
@@ -6,12 +8,29 @@
 </label>
 
 <div class="label" id="label">...</div>
-<div class="msg" id="msg">Lettura stato in corso...</div>
+<div class="timer" id="timer"></div>
+<div class="msg" id="msg">Connessione in corso...</div>
+
+<a class="open" id="open" href="@{CONF.open_url}" target="_blank" rel="noopener" hidden>Apri @{CONF.open_url}</a>
+
+<div id="cfg" data-url="@{CONF.open_url}" data-delay="@{CONF.open_delay}" hidden></div>
 
 <script>
 	var toggle = document.getElementById('toggle');
 	var label = document.getElementById('label');
+	var timer = document.getElementById('timer');
 	var msg = document.getElementById('msg');
+	var conn = document.getElementById('conn');
+	var link = document.getElementById('open');
+	var cfg = document.getElementById('cfg').dataset;
+
+	var OPEN_URL = cfg.url;
+	var OPEN_DELAY = parseInt(cfg.delay, 10);
+	if (isNaN(OPEN_DELAY))
+		OPEN_DELAY = 20;
+
+	var pending = false;   // comando in esecuzione
+	var offat = null;      // timestamp locale dello spegnimento automatico
 
 	function setmsg(text, error) {
 		msg.textContent = text || '';
@@ -22,40 +41,128 @@
 		label.textContent = toggle.checked ? 'ON' : 'OFF';
 	}
 
-	function loadstatus() {
-		fetch('/api/status/').then(r => r.json()).then(function(res) {
-			toggle.checked = !!res.online;
-			render();
-			setmsg(res.success ? '' : ('Stato non disponibile: ' + res.error), !res.success);
-		}).catch(function() {
-			setmsg('Impossibile contattare il server', true);
-		}).finally(function() {
-			toggle.disabled = false;
-		});
+	function pad(n) {
+		return (n < 10 ? '0' : '') + n;
 	}
+
+	function rendertimer() {
+		if (!offat || !toggle.checked) {
+			timer.textContent = '';
+			return;
+		}
+		var sec = Math.max(0, Math.round((offat - Date.now()) / 1000));
+		var h = Math.floor(sec / 3600);
+		var m = Math.floor((sec % 3600) / 60);
+		var s = sec % 60;
+		timer.textContent = 'Spegnimento automatico tra ' + (h ? h + ':' : '') + pad(m) + ':' + pad(s);
+	}
+
+	// Applica uno stato ricevuto dal server
+	function apply(st) {
+		offat = st.remaining != null ? Date.now() + st.remaining * 1000 : null;
+		link.hidden = !(st.known && st.online);   // link visibile solo a server acceso
+		if (st.known && !st.online)
+			cancelopen();
+		if (pending)
+			return;
+		if (st.known) {
+			toggle.checked = !!st.online;
+			toggle.disabled = false;
+			render();
+		}
+		rendertimer();
+		if (st.error)
+			setmsg('Stato non disponibile: ' + st.error, true);
+		else if (msg.className.indexOf('err') !== -1 || msg.textContent === 'Connessione in corso...')
+			setmsg('');
+	}
+
+	setInterval(rendertimer, 1000);
+
+	// ---------------- WebSocket ----------------
+
+	function connect() {
+		var ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/');
+
+		ws.onopen = function() {
+			conn.textContent = 'live';
+			conn.className = 'conn ok';
+		};
+
+		ws.onmessage = function(e) {
+			var data;
+			try { data = JSON.parse(e.data); } catch (err) { return; }
+			data.type === 'status' && apply(data);
+		};
+
+		ws.onclose = function() {
+			conn.textContent = 'offline';
+			conn.className = 'conn';
+			setTimeout(connect, 3000);   // riconnessione automatica
+		};
+	}
+
+	connect();
+
+	// ---------------- Apertura pagina ----------------
+
+	var countdown = null;
+
+	function cancelopen() {
+		if (countdown) {
+			clearTimeout(countdown);
+			countdown = null;
+		}
+	}
+
+	// Dopo OPEN_DELAY secondi apre OPEN_URL in una nuova scheda
+	function openlater() {
+		var left = OPEN_DELAY;
+		cancelopen();
+		var tick = function() {
+			if (left <= 0) {
+				countdown = null;
+				setmsg('');
+				window.open(OPEN_URL, '_blank');
+				return;
+			}
+			setmsg('Apertura di ' + OPEN_URL + ' tra ' + left + ' s');
+			left--;
+			countdown = setTimeout(tick, 1000);
+		};
+		tick();
+	}
+
+	// ---------------- Interruttore ----------------
 
 	toggle.addEventListener('change', function() {
 		var on = toggle.checked;
+
+		cancelopen();
+		pending = true;
 		toggle.disabled = true;
 		render();
 		setmsg('Esecuzione comando...');
 
 		fetch(on ? '/api/on/' : '/api/off/', { method: 'POST' }).then(r => r.json()).then(function(res) {
+			pending = false;
+			toggle.disabled = false;
 			if (res.success) {
 				setmsg('Eseguito: ' + res.command);
+				res.status && apply(res.status);
+				if (on && OPEN_URL)
+					openlater();
 			} else {
 				toggle.checked = !on;
 				render();
 				setmsg('Errore: ' + res.error, true);
 			}
 		}).catch(function() {
+			pending = false;
+			toggle.disabled = false;
 			toggle.checked = !on;
 			render();
 			setmsg('Impossibile contattare il server', true);
-		}).finally(function() {
-			toggle.disabled = false;
 		});
 	});
-
-	loadstatus();
 </script>

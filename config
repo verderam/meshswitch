@@ -4,6 +4,16 @@ name                : MeshSwitch
 cmd_on              : pm2 start meshcentral
 cmd_off             : pm2 stop meshcentral
 
-// Usati per leggere lo stato iniziale dell'interruttore
+// Usati per leggere lo stato del servizio
 cmd_status          : pm2 jlist
 pm2_process         : meshcentral
+
+// Ogni quanti secondi il server controlla lo stato e lo invia via WebSocket
+status_interval     : 5
+
+// Spegnimento automatico: secondi dopo l'accensione (0 = disattivato)
+autooff             : 3600
+
+// Pagina da aprire in una nuova finestra dopo l'accensione
+open_url            : https://cc.112pc.it
+open_delay          : 20
