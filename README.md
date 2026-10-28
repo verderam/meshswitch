@@ -28,8 +28,8 @@ meshswitch/
 
 ```bash
 npm install
-node on.js            # debug
-node on.js --release  # produzione
+node on.js            # produzione (release, default)
+node on.js --debug    # debug
 ```
 
 Poi apri `http://<server>:6990/`.
@@ -37,7 +37,7 @@ Poi apri `http://<server>:6990/`.
 Per tenerla attiva con PM2:
 
 ```bash
-pm2 start on.js --name meshswitch -- --release
+pm2 start on.js --name meshswitch
 ```
 
 ## Note

@@ -5,7 +5,7 @@
   "main": "on.js",
   "scripts": {
     "start": "node on.js",
-    "release": "node on.js --release"
+    "debug": "node on.js --debug"
   },
   "dependencies": {
     "total5": "latest"
