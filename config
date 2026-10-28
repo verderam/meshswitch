@@ -1,0 +1,9 @@
+name                : MeshSwitch
+
+// Comandi shell eseguiti dall'interruttore
+cmd_on              : pm2 start meshcentral
+cmd_off             : pm2 stop meshcentral
+
+// Usati per leggere lo stato iniziale dell'interruttore
+cmd_status          : pm2 jlist
+pm2_process         : meshcentral
