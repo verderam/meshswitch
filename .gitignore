@@ -147,3 +147,9 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Total.js runtime
+on.js.json
+on.js.map
+tmp/
+package-lock.json
