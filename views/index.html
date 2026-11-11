@@ -8,7 +8,11 @@
 </label>
 
 <div class="label" id="label">...</div>
-<div class="timer" id="timer"></div>
+<div class="timerwrap" id="timerwrap">
+	<button class="adjust" id="minus" type="button" tabindex="-1" title="Riduci di un'ora">−1h</button>
+	<div class="timer" id="timer"></div>
+	<button class="adjust" id="plus" type="button" tabindex="-1" title="Aggiungi un'ora">+1h</button>
+</div>
 <div class="msg" id="msg">Connessione in corso...</div>
 
 <a class="open" id="open" href="@{CONF.open_url}" target="_blank" rel="noopener" hidden>Apri @{CONF.open_url}</a>
@@ -18,7 +22,10 @@
 <script>
 	var toggle = document.getElementById('toggle');
 	var label = document.getElementById('label');
+	var timerwrap = document.getElementById('timerwrap');
 	var timer = document.getElementById('timer');
+	var minus = document.getElementById('minus');
+	var plus = document.getElementById('plus');
 	var msg = document.getElementById('msg');
 	var conn = document.getElementById('conn');
 	var link = document.getElementById('open');
@@ -48,6 +55,7 @@
 	function rendertimer() {
 		if (!offat || !toggle.checked) {
 			timer.textContent = '';
+			timerwrap.classList.remove('active');
 			return;
 		}
 		var sec = Math.max(0, Math.round((offat - Date.now()) / 1000));
@@ -55,6 +63,7 @@
 		var m = Math.floor((sec % 3600) / 60);
 		var s = sec % 60;
 		timer.textContent = 'Spegnimento automatico tra ' + (h ? h + ':' : '') + pad(m) + ':' + pad(s);
+		timerwrap.classList.add('active');
 	}
 
 	// Applica uno stato ricevuto dal server
@@ -132,6 +141,36 @@
 		};
 		tick();
 	}
+
+	// ---------------- Regolazione spegnimento ----------------
+
+	timer.title = 'Clicca per aggiungere un\'ora di funzionamento';
+
+	// delta: 1 = posticipa di un'ora, -1 = anticipa di un'ora
+	function adjust(delta) {
+		if (!offat || !toggle.checked || pending)
+			return;
+
+		pending = true;
+		setmsg(delta > 0 ? 'Posticipazione in corso...' : 'Anticipo in corso...');
+
+		fetch('/api/postpone/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ delta: delta }) }).then(r => r.json()).then(function(res) {
+			pending = false;
+			if (res.success) {
+				setmsg(delta > 0 ? 'Spegnimento posticipato di un\'ora' : 'Spegnimento anticipato di un\'ora');
+				res.status && apply(res.status);
+			} else {
+				setmsg('Errore: ' + res.error, true);
+			}
+		}).catch(function() {
+			pending = false;
+			setmsg('Impossibile contattare il server', true);
+		});
+	}
+
+	timer.addEventListener('click', function() { adjust(1); });
+	plus.addEventListener('click', function() { adjust(1); });
+	minus.addEventListener('click', function() { adjust(-1); });
 
 	// ---------------- Interruttore ----------------
 

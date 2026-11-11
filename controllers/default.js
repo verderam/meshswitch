@@ -15,6 +15,7 @@ exports.install = function() {
 	ROUTE('GET /api/status/', status);
 	ROUTE('POST /api/on/', turnon);
 	ROUTE('POST /api/off/', turnoff);
+	ROUTE('POST /api/postpone/', postpone);
 	ROUTE('SOCKET /', realtime);
 
 	// Controllo periodico dello stato
@@ -30,6 +31,11 @@ exports.install = function() {
 function autooff() {
 	// secondi; 0 = disattivato
 	return CONF.autooff == null ? 3600 : (+CONF.autooff || 0);
+}
+
+function postpone_amount() {
+	// secondi aggiunti a ogni posticipazione; 0 = 1 ora
+	return CONF.postpone == null ? 3600 : (+CONF.postpone || 3600);
 }
 
 function run(command, callback) {
@@ -161,6 +167,20 @@ function turnon($) {
 
 function turnoff($) {
 	execute($, CONF.cmd_off, false);
+}
+
+// Posticipa o anticipa lo spegnimento automatico (body JSON: { delta: 1 | -1 })
+function postpone($) {
+
+	if (!STATE.online || !STATE.offat) {
+		$.json({ success: false, error: 'Nessuno spegnimento automatico attivo' });
+		return;
+	}
+
+	const delta = $.body && +$.body.delta < 0 ? -1 : 1;
+	STATE.offat = Math.max(Date.now(), STATE.offat + delta * postpone_amount() * 1000);
+	broadcast();
+	$.json({ success: true, status: payload() });
 }
 
 function status($) {

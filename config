@@ -14,6 +14,9 @@ status_interval     : 5
 // Spegnimento automatico: secondi dopo l'accensione (0 = disattivato)
 autooff             : 3600
 
+// Secondi aggiunti allo spegnimento automatico cliccando sul countdown
+postpone            : 3600
+
 // Pagina da aprire in una nuova finestra dopo l'accensione
 open_url            : https://cc.112pc.it
 open_delay          : 20
